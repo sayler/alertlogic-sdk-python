@@ -57,8 +57,19 @@ class CliHelpAction(argparse.Action):
 
 
 class CliArgParserBase(argparse.ArgumentParser):
-    # Number of choices per line
-    ChoicesPerLine = 2
+    @staticmethod
+    def format_as_columns (strings, width=80):
+        maxlen = max([len(s) for s in strings])
+        columns = width // max (maxlen+1, 20) # +1: " " delimiter
+        col_width = width // columns
+
+        result = []
+        for i in range(len(strings))[::columns]:
+            current = []
+            for s in strings[i:i+columns]:
+                current.append(f'%-{col_width}s' % s)
+            result.append(' '.join(current))
+        return result
 
     def _check_value(self, action, value):
         # converted value must be one of the choices (if specified)
@@ -71,11 +82,8 @@ class CliArgParserBase(argparse.ArgumentParser):
             if 'help' in choices:
                 choices.remove('help')
             msg = ['Invalid choice, valid choices are:\n']
-            for i in range(len(choices))[::self.ChoicesPerLine]:
-                current = []
-                for choice in choices[i:i+self.ChoicesPerLine]:
-                    current.append('%-40s' % choice)
-                msg.append(' | '.join(current))
+            msg.extend (CliArgParserBase.format_as_columns (choices))
+
             possible = get_close_matches(value, choices, cutoff=0.8)
             if possible:
                 extra = ['\n\nInvalid choice: %r, maybe you meant:\n' % value]
